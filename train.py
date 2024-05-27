@@ -90,14 +90,21 @@ def get_model():
     return model, pool
 
 
-def triplet_margin_loss(anchor, positive, negative, margin=1.0):
-    # Compute Euclidean distances
-    distance_positive = tf.norm(anchor - positive, axis=1)
-    distance_negative = tf.norm(anchor - negative, axis=1)
+# def triplet_margin_loss(anchor, positive, negative, margin=1.0):
+#     # Compute Euclidean distances
+#     distance_positive = tf.norm(anchor - positive, axis=1)
+#     distance_negative = tf.norm(anchor - negative, axis=1)
     
-    # Compute triplet loss
-    loss = tf.maximum(distance_positive - distance_negative + margin, 0.0)
-    return tf.reduce_mean(loss)
+#     # Compute triplet loss
+#     loss = tf.maximum(distance_positive - distance_negative + margin, 0.0)
+#     return tf.reduce_mean(loss)
+
+def triplet_margin_loss(query,postive,negative,margin = 0.1 ** 0.5):
+    positive_distance = tf.keras.backend.sum(tf.square(query - postive), axis=-1)
+    negative_distance = tf.keras.backend.sum(tf.square(query - negative), axis=-1)
+    loss = positive_distance - negative_distance
+    loss = tf.maximum(loss + margin, 0.0)
+    return loss
 
 
 if __name__ == '__main__':

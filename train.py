@@ -198,18 +198,27 @@ if __name__ == '__main__':
         epoch_loss /= len(train_data_loader)
         print(f"Epoch: {epoch+1}/{config.EPOCHS}, \
                 loss: {epoch_loss.numpy()[0]:.5f}")
-
+    name = "version1"
     model.save_weights(filepath="saved_model/model", save_format='tf')
     pool.save_weights(filepath="saved_model/pool", save_format='tf')
 
-    model.save('saved_model/netvlad_tf/model')
-    pool.save('saved_model/netvlad_tf/pool')
+    model.save('saved_model/model/'+name+'_resnet')
+    pool.save('saved_model/pool/'+name+'_pool')
 
-    new_model = tf.keras.models.load_model('saved_model/netvlad_tf')
-    converter = tf.lite.TFLiteConverter.from_saved_model('saved_model/netvlad_tf')  # path to the SavedModel directory
-    tflite_model = converter.convert()
+    new_model_resnet = tf.keras.models.load_model('saved_model/model/'+name+'_resnet')
+    converter = tf.lite.TFLiteConverter.from_saved_model('saved_model/model/'+name+'_resnet')  # path to the SavedModel directory
+    tflite_model_resnet = converter.convert()
+
+    new_model_pool = tf.keras.models.load_model('saved_model/model/' + name + '_pool')
+    converter = tf.lite.TFLiteConverter.from_saved_model(
+        'saved_model/model/' + name + '_pool')  # path to the SavedModel directory
+    tflite_model_pool = converter.convert()
 
     # Save the model.
-    with open('test.tflite', 'wb') as f:
-        f.write(tflite_model)
-    new_model.summary()
+    with open('./saved_model/' + name + '_resnet.tflite', 'wb') as f:
+        f.write(tflite_model_resnet)
+    tflite_model_resnet.summary()
+
+    with open('./saved_model/'+name+'_pool.tflite', 'wb') as f:
+        f.write(tflite_model_pool)
+    tflite_model_pool.summary()

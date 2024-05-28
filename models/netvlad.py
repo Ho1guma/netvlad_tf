@@ -35,7 +35,7 @@ class NetVLAD(tf.keras.Model):
         self.softmax = tf.keras.layers.Softmax(axis=-1)
 
         self.initializer = tf.initializers.he_normal()
-        self.C = tf.Variable(lambda: self.initializer(shape=(1, 1, 1, 512, 32)))
+        self.C = tf.Variable(lambda: self.initializer(shape=(1, 1, 1, 512, 32)),trainable=True)
         self.add = tf.keras.layers.Add()
         self.mul = tf.keras.layers.Multiply()
         self.flatten = tf.keras.layers.Flatten()
@@ -44,8 +44,8 @@ class NetVLAD(tf.keras.Model):
     def call(self, x, training=None, mask=None):
         s = self.conv2(x)
         a = self.softmax(s)
-        a = tf.keras.backend.expand_dims(a, -2)  # (b,8,10,1,64)
-        x = tf.keras.backend.expand_dims(x, -1)
+        a = tf.reshape(a, shape=[-1, a.shape[1], a.shape[2], 1, a.shape[3]])
+        x = tf.reshape(x, shape=[-1, x.shape[1], x.shape[2], x.shape[3], 1])
         v = self.add([x,self.C])
         v = self.mul([a,v])
         v = tf.reduce_sum(v, axis=[1, 2])

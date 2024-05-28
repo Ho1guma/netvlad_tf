@@ -11,6 +11,8 @@ from models.netvlad import netvlad
 import config
 from prepare_data_custom import generate_datasets, get_training_query_set
 
+from tensorflow.python.client import device_lib
+
 
 def parse_arguments():
 
@@ -109,8 +111,11 @@ def triplet_margin_loss(query,postive,negative,margin = 0.1 ** 0.5):
 
 if __name__ == '__main__':
 
+    # tf.debugging.set_log_device_placement(True)
+
     # GPU settings
     gpus = tf.config.experimental.list_physical_devices('GPU')
+    # gpus = device_lib.list_local_devices()
     if gpus:
         for gpu in gpus:
             tf.config.experimental.set_memory_growth(gpu, True)
@@ -118,24 +123,25 @@ if __name__ == '__main__':
     # parse arguments
     opt = parse_arguments()
 
-    # get the original_dataset
-    a=1
-    train_data_loader = get_training_query_set(opt)
-    # train_dataset = get_training_query_set(opt)
+    with tf.device("/gpu:0"):
+        # get the original_dataset
+        a=1
+        train_data_loader = get_training_query_set(opt)
+        # train_dataset = get_training_query_set(opt)
 
-    # create model
-    model, pool = get_model()
+        # create model
+        model, pool = get_model()
 
-    # define loss and optimizer
-    loss_object = tf.keras.losses.SparseCategoricalCrossentropy()
-    # optimizer = tf.keras.optimizers.Adadelta()
-    optimizer = tf.keras.optimizers.Adam()
+        # define loss and optimizer
+        loss_object = tf.keras.losses.SparseCategoricalCrossentropy()
+        # optimizer = tf.keras.optimizers.Adadelta()
+        optimizer = tf.keras.optimizers.Adam()
 
-    train_loss = tf.keras.metrics.Mean(name='train_loss')
-    train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
+        train_loss = tf.keras.metrics.Mean(name='train_loss')
+        train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
 
-    # valid_loss = tf.keras.metrics.Mean(name='valid_loss')
-    # valid_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='valid_accuracy')
+        # valid_loss = tf.keras.metrics.Mean(name='valid_loss')
+        # valid_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='valid_accuracy')
 
     # @tf.function #!DEBUG
     def train_step(images, labels):
@@ -158,6 +164,7 @@ if __name__ == '__main__':
         # valid_accuracy.reset_states()
         step = 0
         # for images, labels in train_dataset:
+        epoch_loss = 0
         for iteration, (query, positives, negatives, negCounts) in enumerate(train_data_loader):
             step += 1
 
@@ -168,7 +175,6 @@ if __name__ == '__main__':
                 nNeg = tf.reduce_sum(negCounts, axis=0)
                 input = tf.concat([query, positives, negatives], axis=0)
 
-                # input = input.to(device)
                 image_encoding = model(input)
                 vlad_encoding = pool(image_encoding)
 
@@ -180,26 +186,25 @@ if __name__ == '__main__':
                         negIx = int((tf.reduce_sum(negCounts[:i]) + n).numpy())
                         loss += triplet_margin_loss(vladQ[i:i+1], vladP[i:i+1], vladN[negIx:negIx+1])
 
-                        # negIx = (torch.sum(negCounts[:i]) + n).item()
-                        # loss += criterion(vladQ[i:i+1], vladP[i:i+1], vladN[negIx:negIx+1])
-
                 loss /= tf.cast(nNeg, dtype=tf.float32)
 
-            gradients = tape.gradient(loss, [model.trainable_variables, pool.trainable_variables])
-            optimizer.apply_gradients(zip(gradients, [model.trainable_variables, pool.trainable_variables]))
+            trainables = model.trainable_weights + pool.trainable_weights
+            gradients = tape.gradient(loss, trainables)
+            optimizer.apply_gradients(zip(gradients, trainables))
 
+            print(f"[Iter {iteration}] {loss.numpy()[0]:.5f}")
+            epoch_loss += loss
 
-            a=1
-            # train_step(images, labels)
-            print("Epoch: {}/{}, step: {}/{}, loss: {:.5f}, accuracy: {:.5f}".format(epoch + 1,
-                                                                                     config.EPOCHS,
-                                                                                     step,
-                                                                                     math.ceil(train_count / config.BATCH_SIZE),
-                                                                                     train_loss.result(),
-                                                                                     train_accuracy.result()))
+        epoch_loss /= len(train_data_loader)
+        print(f"Epoch: {epoch+1}/{config.EPOCHS}, \
+                loss: {epoch_loss.numpy()[0]:.5f}")
 
-    model.save_weights(filepath=config.save_model_dir, save_format='tf')
-    model.save('saved_model/netvlad_tf')
+    model.save_weights(filepath="saved_model/model", save_format='tf')
+    pool.save_weights(filepath="saved_model/pool", save_format='tf')
+
+    model.save('saved_model/netvlad_tf/model')
+    pool.save('saved_model/netvlad_tf/pool')
+
     new_model = tf.keras.models.load_model('saved_model/netvlad_tf')
     converter = tf.lite.TFLiteConverter.from_saved_model('saved_model/netvlad_tf')  # path to the SavedModel directory
     tflite_model = converter.convert()

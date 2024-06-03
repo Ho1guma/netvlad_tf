@@ -9,11 +9,16 @@ import copy
 from collections import namedtuple
 from PIL import Image
 import numpy as np
+import math
+from scipy.io import loadmat
 
 
 dbStruct = namedtuple('dbStruct', ['whichSet', 'dataset',
                                    'dbImage', 'qImage', 'augImage',
                                    'numDb', 'numQ'])
+TestdbStruct = namedtuple('dbStruct', ['whichSet', 'dataset',
+    'dbImage', 'qImage', 'numDb', 'numQ',
+    'posDistThr', 'posDistSqThr', 'nonTrivPosDistSqThr','gt'])
 
 def input_transform_tf(image):
 
@@ -94,6 +99,11 @@ def get_training_query_set(opt):
     input_transform = input_transform_tf
     return QueryDatasetFromStruct(input_transform=input_transform, opt=opt)
 
+def get_inference_query_set(opt):
+    a=1
+    input_transform = input_transform_tf
+    return TestDatasetFromStruct(input_transform=input_transform, opt=opt)
+
 
 def get_dataset(dataset_root_dir):
     a=1
@@ -119,7 +129,7 @@ def generate_datasets():
     return train_dataset, train_count
 
 
-
+# ===== Datasets =====
 class QueryDatasetFromStruct(tf.keras.utils.Sequence):
     def __init__(self, opt, input_transform=None, batch_size=4):
         super().__init__()
@@ -162,10 +172,9 @@ class QueryDatasetFromStruct(tf.keras.utils.Sequence):
         self.indices = [x for x in range(0, len(self.queries))]
 
     def __len__(self):
-        return len(self.queries)
-    
-    def __getitem__(self, index):
+        return math.ceil(len(self.queries) / self.batch_size)
 
+    def __getitem__(self, index):
         indices = self.indices[index*self.batch_size:(index+1)*self.batch_size]
         data = [self.get_item(x) for x in indices]
 
@@ -242,3 +251,70 @@ class QueryDatasetFromStruct(tf.keras.utils.Sequence):
         return X, y
 
 
+class TestDatasetFromStruct(tf.keras.utils.Sequence):
+    def __init__(self, opt, input_transform=None, batch_size=1):
+        super().__init__()
+        assert batch_size == 1
+        self.batch_size = batch_size
+
+        self.input_transform = input_transform
+        self.dbStruct = self.parse_TestdbStruct(opt.structFile)
+
+        self.images = [x.replace(" ", "") for x in self.dbStruct.dbImage]
+        self.images += [x.replace(" ", "") for x in self.dbStruct.qImage]
+
+        self.whichSet = self.dbStruct.whichSet
+        self.dataset = self.dbStruct.dataset
+
+        self.positives = None
+        self.distances = None
+
+        self.indices = [x for x in range(0, len(self.images))]
+
+        a=1
+    
+    def __len__(self):
+        return math.ceil(len(self.images) / self.batch_size)
+
+    def __getitem__(self, index):
+        indices = self.indices[index*self.batch_size:(index+1)*self.batch_size]
+        data = []
+        for i in indices:
+            img = Image.open(self.images[i])
+            if self.input_transform:
+                try:
+                    img = self.input_transform(img)
+                except:
+                    a=1
+            data.append(img)
+        data = [data] if len(data) == 1 else data
+
+        images = tf.stack([x[0] for x in data])
+
+        return images, index
+
+    def parse_TestdbStruct(self, path):
+        matStruct = loadmat(path)
+
+        dataset = 'robotdata'
+        data_dir = "/ssd_data1/lg/pytorch-Netvlad-orig/"
+
+        whichSet = matStruct['whichSet']
+
+        dbImage = [os.path.join(data_dir, f[0].item()) for f in matStruct['dbImage']]
+        #utmDb = matStruct[2].T
+
+        qImage = [os.path.join(data_dir, f[0].item()) for f in matStruct['qImage']]
+        #utmQ = matStruct[4].T
+
+        numDb = matStruct['numDb'].item()
+        numQ = matStruct['numQ'].item()
+
+        posDistThr = matStruct['posDistThr'].item()
+        posDistSqThr = matStruct['posDistSqThr'].item()
+        nonTrivPosDistSqThr = matStruct['nonTrivPosDistSqThr'].item()
+        gt=  matStruct['gt']
+
+        return TestdbStruct(whichSet, dataset, dbImage, qImage,
+                numDb, numQ, posDistThr,
+                posDistSqThr, nonTrivPosDistSqThr,gt)

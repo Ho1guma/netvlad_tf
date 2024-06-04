@@ -7,7 +7,6 @@ import tensorflow as tf
 
 from models.resnet import resnet_18, resnet_34, resnet_50, resnet_101, resnet_152
 from models.netvlad import netvlad
-from tensorflow.keras.applications.ResNet50 import ResNet50
 
 import config
 from prepare_data_custom import generate_datasets, get_training_query_set
@@ -38,7 +37,8 @@ def parse_arguments():
     parser.add_argument('--threads', type=int, default=0, help='Number of threads for each data loader to use')
     parser.add_argument('--seed', type=int, default=123, help='Random seed to use.')
     parser.add_argument('--dataPath', type=str,
-                        default='/ssd_data1/lg/pytorch-Netvlad-orig/datasets/240416/train',
+                        # default='/ssd_data1/lg/pytorch-Netvlad-orig/datasets/240416/train',
+                        default='/home/aix7703/cvlab/nfs_clientshare/lg/datasets/240416-train/train'
                         help='Path for centroid data.')
     parser.add_argument('--runsPath', type=str, default='./work_dir/runs/run-99/', help='Path to save runs to.')
     parser.add_argument('--savePath', type=str, default='checkpoints', 
@@ -200,7 +200,7 @@ if __name__ == '__main__':
         print(f"Epoch: {epoch+1}/{config.EPOCHS}, \
                 loss: {epoch_loss.numpy()[0]:.5f}")
 
-    name = "version2"
+    name = "version3"
     model.save_weights(filepath="saved_model/model", save_format='tf')
     pool.save_weights(filepath="saved_model/pool", save_format='tf')
 

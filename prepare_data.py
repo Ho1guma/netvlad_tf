@@ -48,7 +48,6 @@ def generate_datasets():
     # valid_dataset, valid_count = get_dataset(dataset_root_dir=config.valid_dir)
     # test_dataset, test_count = get_dataset(dataset_root_dir=config.test_dir)
 
-
     # read the original_dataset in the form of batch
     train_dataset = train_dataset.shuffle(buffer_size=train_count).batch(batch_size=config.BATCH_SIZE)
     # valid_dataset = valid_dataset.batch(batch_size=config.BATCH_SIZE)

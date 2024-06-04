@@ -7,6 +7,7 @@ import tensorflow as tf
 
 from models.resnet import resnet_18, resnet_34, resnet_50, resnet_101, resnet_152
 from models.netvlad import netvlad
+from tf2_resnets import models
 
 import config
 from prepare_data_custom import generate_datasets, get_training_query_set
@@ -37,8 +38,7 @@ def parse_arguments():
     parser.add_argument('--threads', type=int, default=0, help='Number of threads for each data loader to use')
     parser.add_argument('--seed', type=int, default=123, help='Random seed to use.')
     parser.add_argument('--dataPath', type=str,
-                        # default='/ssd_data1/lg/pytorch-Netvlad-orig/datasets/240416/train',
-                        default='/home/aix7703/cvlab/nfs_clientshare/lg/datasets/240416-train/train'
+                        default='/ssd_data1/lg/pytorch-Netvlad-orig/datasets/240416/train',
                         help='Path for centroid data.')
     parser.add_argument('--runsPath', type=str, default='./work_dir/runs/run-99/', help='Path to save runs to.')
     parser.add_argument('--savePath', type=str, default='checkpoints', 
@@ -81,7 +81,8 @@ def get_model():
     if config.model == "resnet152":
         model = resnet_152()
     if config.model == "netvlad":
-        model = resnet_18()
+        #model = resnet_18()
+        model = models.ResNet18(include_top=False, input_shape=(config.image_height, config.image_width, config.channels), weights='imagenet')
         pool = netvlad()
 
     model.build(input_shape=(None, config.image_height, config.image_width, config.channels))

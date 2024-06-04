@@ -81,11 +81,11 @@ def get_model():
         model = resnet_152()
     if config.model == "netvlad":
         #model = resnet_18()
-        model = models.ResNet18(include_top=False, input_shape=(210, 280, 3), weights='imagenet')
+        model = models.ResNet18(include_top=False, input_shape=(config.image_height, config.image_width, config.channels), weights='imagenet')
         pool = netvlad()
 
     model.build(input_shape=(None, config.image_height, config.image_width, config.channels))
-    pool.build(input_shape=(None, 7, 9, 512)) #!DEBUG
+    pool.build(input_shape=(None, 8, 10, 512)) #!DEBUG
 
     model.summary()
     pool.summary()

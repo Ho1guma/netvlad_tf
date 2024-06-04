@@ -7,8 +7,7 @@ import tensorflow as tf
 
 from models.resnet import resnet_18, resnet_34, resnet_50, resnet_101, resnet_152
 from models.netvlad import netvlad
-from tensorflow.keras.applications.ResNet50 import ResNet50
-
+from tf2_resnets import models
 import config
 from prepare_data_custom import generate_datasets, get_training_query_set
 
@@ -81,11 +80,12 @@ def get_model():
     if config.model == "resnet152":
         model = resnet_152()
     if config.model == "netvlad":
-        model = resnet_18()
+        #model = resnet_18()
+        model = models.ResNet18(include_top=False, input_shape=(210, 280, 3), weights='imagenet')
         pool = netvlad()
 
     model.build(input_shape=(None, config.image_height, config.image_width, config.channels))
-    pool.build(input_shape=(None, 8, 10, 512)) #!DEBUG
+    pool.build(input_shape=(None, 7, 9, 512)) #!DEBUG
 
     model.summary()
     pool.summary()

@@ -2,6 +2,7 @@ from __future__ import absolute_import, division, print_function
 
 import argparse
 import math
+from datetime import datetime
 
 import tensorflow as tf
 
@@ -112,6 +113,7 @@ def triplet_margin_loss(query,postive,negative,margin = 0.1 ** 0.5):
 
 
 if __name__ == '__main__':
+    print(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
     # tf.debugging.set_log_device_placement(True)
 
@@ -137,7 +139,7 @@ if __name__ == '__main__':
         # define loss and optimizer
         loss_object = tf.keras.losses.SparseCategoricalCrossentropy()
         # optimizer = tf.keras.optimizers.Adadelta()
-        optimizer = tf.keras.optimizers.Adam()
+        optimizer = tf.keras.optimizers.Adam(lr=opt.lr)
 
         train_loss = tf.keras.metrics.Mean(name='train_loss')
         train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
@@ -201,7 +203,7 @@ if __name__ == '__main__':
         print(f"Epoch: {epoch+1}/{config.EPOCHS}, \
                 loss: {epoch_loss.numpy()[0]:.5f}")
 
-    name = "version3"
+    name = "version5"
     model.save_weights(filepath="saved_model/model", save_format='tf')
     pool.save_weights(filepath="saved_model/pool", save_format='tf')
 

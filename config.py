@@ -1,5 +1,5 @@
 # some training parameters
-EPOCHS = 50
+EPOCHS = 90
 BATCH_SIZE = 8
 NUM_CLASSES = 5
 image_height = 240

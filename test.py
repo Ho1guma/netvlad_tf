@@ -67,7 +67,10 @@ def parse_arguments():
     parser.add_argument('--nNegSample', type=int, default=16)
     parser.add_argument('--nNeg', type=int, default=10)
     parser.add_argument('--super', action='store_true', help='supervised learning mode')
-    parser.add_argument('--structFile', type=str, default='./LG_Struct/240513-room2.v2.mat')
+
+    parser.add_argument('--resume_version', type=str, default='version4')
+    parser.add_argument('--structFile', type=str, default='./LG_Struct/240513-room1.v3.mat')
+
     args = parser.parse_args()
 
     return args
@@ -130,39 +133,40 @@ if __name__ == '__main__':
         a=1
         test_data_loader = get_inference_query_set(opt)
 
-        # create model
-        encoder_dim = 512 # if resnet18
+    # create model
+    encoder_dim = 512 # if resnet18
+    resume_model_dir = f"saved_model/model/{opt.resume_version}_resnet"
+    resume_pool_dir = f"saved_model/pool/{opt.resume_version}_pool"
+    if os.path.isdir(resume_model_dir) and os.path.isdir(resume_pool_dir):
+        # load checkpoint
+        model = tf.keras.models.load_model(resume_model_dir)
+        pool = tf.keras.models.load_model(resume_pool_dir)
+    else:
         model, pool = get_model()
 
-        # load checkpoint
-        # ...
-
     # load db
-    cache_path = f"./cache/cache-99/{MAT_FILENAME}.npy"
+    # os.makedirs(f"./cache/{opt.resume_version}", exist_ok=True)
+    # cache_path = f"./cache/{opt.resume_version}/{MAT_FILENAME}.npy"
     pool_size = encoder_dim
     eval_set = test_data_loader
     if opt.pooling.lower() == 'netvlad': pool_size *= opt.num_clusters
-    if not os.path.isfile(cache_path):
-        print('====> Extracting Features')
-        dbFeat = np.empty((len(test_data_loader.images), pool_size))
 
-        for iteration, (input, indices) in enumerate(test_data_loader, 1):
-            image_encoding = model(input)
-            vlad_encoding = pool(image_encoding)
+    print('====> Extracting Features')
+    dbFeat = np.empty((len(test_data_loader.images), pool_size))
 
-            try:
-                dbFeat[(iteration - 1), :] = vlad_encoding.numpy()
-                if iteration % 50 == 0 or len(test_data_loader) <= 10:
-                    print("==> Batch ({}/{})".format(iteration,
-                        len(test_data_loader)), flush=True)
-            except:
-                a=1
+    for iteration, (input, indices) in enumerate(test_data_loader, 1):
+        image_encoding = model(input)
+        vlad_encoding = pool(image_encoding)
 
-            del input, image_encoding, vlad_encoding
-        # del test_data_loader
-    else:
-        print(f'====> Load Features from cache: {cache_path}')
-        dbFeat = np.load(cache_path)
+        try:
+            dbFeat[(iteration - 1), :] = vlad_encoding.numpy()
+            if iteration % 50 == 0 or len(test_data_loader) <= 10:
+                print("==> Batch ({}/{})".format(iteration,
+                    len(test_data_loader)), flush=True)
+        except:
+            a=1
+
+        del input, image_encoding, vlad_encoding
 
     qFeat = dbFeat[eval_set.dbStruct.numDb:].astype('float32')
     dbFeat = dbFeat[:eval_set.dbStruct.numDb].astype('float32')
@@ -174,17 +178,18 @@ if __name__ == '__main__':
     print('====> Calculating recall @ N')
     n_values = [1,5,10]
 
-    _, predictions = faiss_index.search(qFeat, max(n_values))
+    distances, predictions = faiss_index.search(qFeat, max(n_values))
 
     #! EVAL DEBUG (240419_test)
     _dict = {
         "eval_set.images": eval_set.images,
         "predictions": predictions,
     }
-    os.makedirs(f'{opt.resume}/eval/', exist_ok=True)
-    np.save(f'{opt.resume}/eval/{MAT_FILENAME}_dbFeat.npy', dbFeat)
-    np.save(f'{opt.resume}/eval/{MAT_FILENAME}_qFeat.npy', qFeat)
-    with open(f'{opt.resume}/eval/{MAT_FILENAME}.pickle', mode='wb') as f:
+    os.makedirs(f'{opt.resume}/eval/{opt.resume_version}', exist_ok=True)
+    np.save(f'{opt.resume}/eval/{opt.resume_version}/{MAT_FILENAME}_dbFeat.npy', dbFeat)
+    np.save(f'{opt.resume}/eval/{opt.resume_version}/{MAT_FILENAME}_qFeat.npy', qFeat)
+    np.save(f'{opt.resume}/eval/{opt.resume_version}/{MAT_FILENAME}_qFeat_dist.npy', distances)
+    with open(f'{opt.resume}/eval/{opt.resume_version}/{MAT_FILENAME}.pickle', mode='wb') as f:
         pickle.dump(_dict, f)
 
     import sys

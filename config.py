@@ -1,6 +1,6 @@
 # some training parameters
-EPOCHS = 100
-BATCH_SIZE = 4
+EPOCHS = 90
+BATCH_SIZE = 8
 NUM_CLASSES = 5
 image_height = 240
 image_width = 320

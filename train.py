@@ -2,12 +2,14 @@ from __future__ import absolute_import, division, print_function
 
 import argparse
 import math
+from datetime import datetime
 
 import tensorflow as tf
 
 from models.resnet import resnet_18, resnet_34, resnet_50, resnet_101, resnet_152
 from models.netvlad import netvlad
 from tf2_resnets import models
+
 import config
 from prepare_data_custom import generate_datasets, get_training_query_set
 
@@ -111,12 +113,10 @@ def triplet_margin_loss(query,postive,negative,margin = 0.1 ** 0.5):
 
 
 if __name__ == '__main__':
-
-    # tf.debugging.set_log_device_placement(True)
+    print(f"Start: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
     # GPU settings
     gpus = tf.config.experimental.list_physical_devices('GPU')
-    # gpus = device_lib.list_local_devices()
     if gpus:
         for gpu in gpus:
             tf.config.experimental.set_memory_growth(gpu, True)
@@ -126,25 +126,18 @@ if __name__ == '__main__':
 
     with tf.device("/gpu:0"):
         # get the original_dataset
-        a=1
         train_data_loader = get_training_query_set(opt)
-        # train_dataset = get_training_query_set(opt)
 
         # create model
         model, pool = get_model()
 
         # define loss and optimizer
         loss_object = tf.keras.losses.SparseCategoricalCrossentropy()
-        # optimizer = tf.keras.optimizers.Adadelta()
-        optimizer = tf.keras.optimizers.Adam()
+        optimizer = tf.keras.optimizers.Adam(lr=opt.lr)
 
         train_loss = tf.keras.metrics.Mean(name='train_loss')
         train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
 
-        # valid_loss = tf.keras.metrics.Mean(name='valid_loss')
-        # valid_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='valid_accuracy')
-
-    # @tf.function #!DEBUG
     def train_step(images, labels):
         a=1
         with tf.GradientTape() as tape:
@@ -200,28 +193,37 @@ if __name__ == '__main__':
         print(f"Epoch: {epoch+1}/{config.EPOCHS}, \
                 loss: {epoch_loss.numpy()[0]:.5f}")
 
-    name = "version2"
-    model.save_weights(filepath="saved_model/model", save_format='tf')
-    pool.save_weights(filepath="saved_model/pool", save_format='tf')
+        if epoch % 10 == 0:
+            name = "version5"
+            # model.save_weights(filepath="saved_model/model", save_format='tf')
+            # pool.save_weights(filepath="saved_model/pool", save_format='tf')
 
-    model.save('saved_model/model/'+name+'_resnet')
-    pool.save('saved_model/pool/'+name+'_pool')
+            # model.save('saved_model/model/'+name+'_resnet')
+            # pool.save('saved_model/pool/'+name+'_pool')
 
-    # Convert to TFLite
-    new_model_resnet = tf.keras.models.load_model('saved_model/model/'+name+'_resnet')
-    converter = tf.lite.TFLiteConverter.from_saved_model('saved_model/model/'+name+'_resnet')  # path to the SavedModel directory
-    tflite_model_resnet = converter.convert()
+            model.save_weights(filepath=f"saved_model/model/{name}", save_format='tf')
+            pool.save_weights(filepath=f"saved_model/pool/{name}", save_format='tf')
 
-    new_model_pool = tf.keras.models.load_model('saved_model/pool/' + name + '_pool')
-    converter = tf.lite.TFLiteConverter.from_saved_model(
-        'saved_model/pool/' + name + '_pool')  # path to the SavedModel directory
-    tflite_model_pool = converter.convert()
+            model.save(f'saved_model/model/{name}_{epoch}_resnet')
+            pool.save(f'saved_model/pool/{name}_{epoch}_pool')
 
-    # Save the model.
-    with open('./saved_model/' + name + '_resnet.tflite', 'wb') as f:
-        f.write(tflite_model_resnet)
-    # tflite_model_resnet.summary()
+            print(f"Model saved (epoch {epoch}): {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-    with open('./saved_model/'+name+'_pool.tflite', 'wb') as f:
-        f.write(tflite_model_pool)
-    # tflite_model_pool.summary()
+    # # Convert to TFLite
+    # new_model_resnet = tf.keras.models.load_model('saved_model/model/'+name+'_resnet')
+    # converter = tf.lite.TFLiteConverter.from_saved_model('saved_model/model/'+name+'_resnet')  # path to the SavedModel directory
+    # tflite_model_resnet = converter.convert()
+
+    # new_model_pool = tf.keras.models.load_model('saved_model/pool/' + name + '_pool')
+    # converter = tf.lite.TFLiteConverter.from_saved_model(
+    #     'saved_model/pool/' + name + '_pool')  # path to the SavedModel directory
+    # tflite_model_pool = converter.convert()
+
+    # # Save the model.
+    # with open('./saved_model/' + name + '_resnet.tflite', 'wb') as f:
+    #     f.write(tflite_model_resnet)
+    # # tflite_model_resnet.summary()
+
+    # with open('./saved_model/'+name+'_pool.tflite', 'wb') as f:
+    #     f.write(tflite_model_pool)
+    # # tflite_model_pool.summary()

@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division, print_function
 
+import os
 import argparse
 import math
 from datetime import datetime
@@ -15,6 +16,7 @@ from prepare_data_custom import generate_datasets, get_training_query_set
 
 from tensorflow.python.client import device_lib
 
+name = "version6"
 
 def parse_arguments():
 
@@ -115,6 +117,9 @@ def triplet_margin_loss(query,postive,negative,margin = 0.1 ** 0.5):
 if __name__ == '__main__':
     print(f"Start: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
+    os.makedirs(f"saved_model/model/{name}", exist_ok=True)
+    os.makedirs(f"saved_model/pool/{name}", exist_ok=True)
+
     # GPU settings
     gpus = tf.config.experimental.list_physical_devices('GPU')
     if gpus:
@@ -138,26 +143,24 @@ if __name__ == '__main__':
         train_loss = tf.keras.metrics.Mean(name='train_loss')
         train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
 
-    def train_step(images, labels):
-        a=1
-        with tf.GradientTape() as tape:
-            predictions = model(images, training=True)
-            loss = loss_object(y_true=labels, y_pred=predictions)
-        gradients = tape.gradient(loss, model.trainable_variables)
-        optimizer.apply_gradients(grads_and_vars=zip(gradients, model.trainable_variables))
+    # def train_step(images, labels):
+    #     a=1
+    #     with tf.GradientTape() as tape:
+    #         predictions = model(images, training=True)
+    #         loss = loss_object(y_true=labels, y_pred=predictions)
+    #     gradients = tape.gradient(loss, model.trainable_variables)
+    #     optimizer.apply_gradients(grads_and_vars=zip(gradients, model.trainable_variables))
 
-        train_loss(loss)
-        train_accuracy(labels, predictions)
+    #     train_loss(loss)
+    #     train_accuracy(labels, predictions)
 
     # start training
     startIter = 1
     for epoch in range(config.EPOCHS):
         train_loss.reset_states()
         train_accuracy.reset_states()
-        # valid_loss.reset_states()
-        # valid_accuracy.reset_states()
+
         step = 0
-        # for images, labels in train_dataset:
         epoch_loss = 0
         for iteration, (query, positives, negatives, negCounts) in enumerate(train_data_loader):
             step += 1
@@ -194,7 +197,6 @@ if __name__ == '__main__':
                 loss: {epoch_loss.numpy()[0]:.5f}")
 
         if epoch % 10 == 0:
-            name = "version5"
             # model.save_weights(filepath="saved_model/model", save_format='tf')
             # pool.save_weights(filepath="saved_model/pool", save_format='tf')
 
@@ -204,8 +206,8 @@ if __name__ == '__main__':
             model.save_weights(filepath=f"saved_model/model/{name}", save_format='tf')
             pool.save_weights(filepath=f"saved_model/pool/{name}", save_format='tf')
 
-            model.save(f'saved_model/model/{name}_{epoch}_resnet')
-            pool.save(f'saved_model/pool/{name}_{epoch}_pool')
+            model.save(f'saved_model/model/{name}/resnet_{epoch}')
+            pool.save(f'saved_model/pool/{name}/pool_{epoch}')
 
             print(f"Model saved (epoch {epoch}): {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 

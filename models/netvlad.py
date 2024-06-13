@@ -1,6 +1,6 @@
 
 import tensorflow as tf
-
+import config
 
 # def netVLAD(inputs, num_clusters, assign_weight_initializer=None,
 #             cluster_initializer=None, skip_postnorm=False):
@@ -30,8 +30,9 @@ import tensorflow as tf
 class NetVLAD(tf.keras.Model):
     def __init__(self, num_clusters=32):
         super(NetVLAD, self).__init__()
-
         self.conv2 = tf.keras.layers.Conv2D(num_clusters, 1, use_bias=False)
+        if config.kernel:
+            self.conv3 = tf.keras.layers.Conv2D(512, config.kernel, use_bias=False)
         self.softmax = tf.keras.layers.Softmax(axis=-1)
 
         self.initializer = tf.initializers.he_normal()
@@ -40,8 +41,18 @@ class NetVLAD(tf.keras.Model):
         self.mul = tf.keras.layers.Multiply()
         self.flatten = tf.keras.layers.Flatten()
 
+    def normalize_tensor(self,input, p, dim, eps = 1e-12):
+        norm = tf.norm(input, ord=p, axis=dim, keepdims=True)
+        norm = tf.clip_by_value(norm, clip_value_min=eps, clip_value_max=tf.reduce_max(norm))
+        norm = tf.broadcast_to(norm, tf.shape(input))
+        normalized_input = input / norm
+        return normalized_input
+
 
     def call(self, x, training=None, mask=None):
+        x = self.normalize_tensor(x,p=2,dim=3)
+        if config.kernel:
+            x = self.conv3(x)
         s = self.conv2(x)
         a = self.softmax(s)
         a = tf.keras.backend.expand_dims(a, -2)  # (b,8,10,1,64)
@@ -50,8 +61,9 @@ class NetVLAD(tf.keras.Model):
         v = self.mul([a,v])
         v = tf.reduce_sum(v, axis=[1, 2])
         #v = tf.transpose(v, perm=[0, 2, 1])
-        output = self.flatten(v)
-
+        v= self.normalize_tensor(v, p=2, dim=1)
+        v = self.flatten(v)
+        output = self.normalize_tensor(v, p=2, dim=1)
         return output
 
 

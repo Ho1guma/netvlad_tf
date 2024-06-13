@@ -25,7 +25,7 @@ def input_transform_tf(image):
     image = tf.convert_to_tensor(np.array(image), dtype=tf.float32)
 
     # Resize image
-    image = tf.image.resize(image, size=(320, 240))
+    image = tf.image.resize(image, size=(config.image_height, config.image_width))
 
     # Normalize image
     image = tf.image.per_image_standardization(image)

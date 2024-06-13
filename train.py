@@ -10,7 +10,7 @@ import tensorflow as tf
 from models.resnet import resnet_18, resnet_34, resnet_50, resnet_101, resnet_152
 from models.netvlad import netvlad
 from tf2_resnets import models
-
+import math
 import config
 from prepare_data_custom import generate_datasets, get_training_query_set
 
@@ -89,7 +89,7 @@ def get_model():
         pool = netvlad()
 
     model.build(input_shape=(None, config.image_height, config.image_width, config.channels))
-    pool.build(input_shape=(None, 8, 10, 512)) #!DEBUG
+    pool.build(input_shape=(None, math.ceil(config.image_height/32), math.ceil(config.image_width/32), 512)) #!DEBUG
 
     model.summary()
     pool.summary()

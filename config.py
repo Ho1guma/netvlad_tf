@@ -17,3 +17,4 @@ test_dir = dataset_dir + "test"
 # model = "resnet101"
 # model = "resnet152"
 model = "netvlad"
+kernel = 0

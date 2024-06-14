@@ -4,6 +4,7 @@ import os
 import argparse
 import math
 from datetime import datetime
+import json
 
 import tensorflow as tf
 
@@ -16,7 +17,7 @@ from prepare_data_custom import generate_datasets, get_training_query_set
 
 from tensorflow.python.client import device_lib
 
-name = "version6"
+NAME = "version6"
 
 def parse_arguments():
 
@@ -41,7 +42,8 @@ def parse_arguments():
     parser.add_argument('--threads', type=int, default=0, help='Number of threads for each data loader to use')
     parser.add_argument('--seed', type=int, default=123, help='Random seed to use.')
     parser.add_argument('--dataPath', type=str,
-                        default='/ssd_data1/lg/pytorch-Netvlad-orig/datasets/240416/train',
+                        # default='/ssd_data1/lg/pytorch-Netvlad-orig/datasets/240416/train',
+                        default='./datasets/240416/train',
                         help='Path for centroid data.')
     parser.add_argument('--runsPath', type=str, default='./work_dir/runs/run-99/', help='Path to save runs to.')
     parser.add_argument('--savePath', type=str, default='checkpoints', 
@@ -129,6 +131,13 @@ if __name__ == '__main__':
     # parse arguments
     opt = parse_arguments()
 
+    # save configs
+    save_cfg = {f"config.{k}":v for k, v in config.__dict__.items() if "__" not in k}
+    save_cfg.update({f"opt.{k}": v for k, v in opt.__dict__.items()})
+    a=1
+    with open(f'./configs/{NAME}.config.json', 'w') as f:
+        json.dump(save_cfg, f, indent=4)
+
     with tf.device("/gpu:0"):
         # get the original_dataset
         train_data_loader = get_training_query_set(opt)
@@ -200,32 +209,32 @@ if __name__ == '__main__':
             # model.save_weights(filepath="saved_model/model", save_format='tf')
             # pool.save_weights(filepath="saved_model/pool", save_format='tf')
 
-            # model.save('saved_model/model/'+name+'_resnet')
-            # pool.save('saved_model/pool/'+name+'_pool')
+            # model.save('saved_model/model/'+NAME+'_resnet')
+            # pool.save('saved_model/pool/'+NAME+'_pool')
 
-            model.save_weights(filepath=f"saved_model/model/{name}", save_format='tf')
-            pool.save_weights(filepath=f"saved_model/pool/{name}", save_format='tf')
+            model.save_weights(filepath=f"saved_model/model/{NAME}", save_format='tf')
+            pool.save_weights(filepath=f"saved_model/pool/{NAME}", save_format='tf')
 
-            model.save(f'saved_model/model/{name}/resnet_{epoch}')
-            pool.save(f'saved_model/pool/{name}/pool_{epoch}')
+            model.save(f'saved_model/model/{NAME}_{epoch}_resnet')
+            pool.save(f'saved_model/pool/{NAME}_{epoch}_pool')
 
             print(f"Model saved (epoch {epoch}): {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
     # # Convert to TFLite
-    # new_model_resnet = tf.keras.models.load_model('saved_model/model/'+name+'_resnet')
-    # converter = tf.lite.TFLiteConverter.from_saved_model('saved_model/model/'+name+'_resnet')  # path to the SavedModel directory
+    # new_model_resnet = tf.keras.models.load_model('saved_model/model/'+NAME+'_resnet')
+    # converter = tf.lite.TFLiteConverter.from_saved_model('saved_model/model/'+NAME+'_resnet')  # path to the SavedModel directory
     # tflite_model_resnet = converter.convert()
 
-    # new_model_pool = tf.keras.models.load_model('saved_model/pool/' + name + '_pool')
+    # new_model_pool = tf.keras.models.load_model('saved_model/pool/' + NAME + '_pool')
     # converter = tf.lite.TFLiteConverter.from_saved_model(
-    #     'saved_model/pool/' + name + '_pool')  # path to the SavedModel directory
+    #     'saved_model/pool/' + NAME + '_pool')  # path to the SavedModel directory
     # tflite_model_pool = converter.convert()
 
     # # Save the model.
-    # with open('./saved_model/' + name + '_resnet.tflite', 'wb') as f:
+    # with open('./saved_model/' + NAME + '_resnet.tflite', 'wb') as f:
     #     f.write(tflite_model_resnet)
     # # tflite_model_resnet.summary()
 
-    # with open('./saved_model/'+name+'_pool.tflite', 'wb') as f:
+    # with open('./saved_model/'+NAME+'_pool.tflite', 'wb') as f:
     #     f.write(tflite_model_pool)
     # # tflite_model_pool.summary()

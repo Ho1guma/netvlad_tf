@@ -11,6 +11,7 @@ from PIL import Image
 import numpy as np
 import math
 from scipy.io import loadmat
+import config
 
 
 dbStruct = namedtuple('dbStruct', ['whichSet', 'dataset',

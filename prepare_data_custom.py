@@ -11,6 +11,7 @@ from PIL import Image
 import numpy as np
 import math
 from scipy.io import loadmat
+import config
 
 
 dbStruct = namedtuple('dbStruct', ['whichSet', 'dataset',
@@ -25,7 +26,8 @@ def input_transform_tf(image):
     image = tf.convert_to_tensor(np.array(image), dtype=tf.float32)
 
     # Resize image
-    image = tf.image.resize(image, size=(320, 240))
+    image = tf.image.resize(image, size=(config.image_width, config.image_height))
+    # image = tf.image.resize(image, size=(320, 240))
 
     # Normalize image
     image = tf.image.per_image_standardization(image)

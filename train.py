@@ -119,8 +119,8 @@ def triplet_margin_loss(query,postive,negative,margin = 0.1 ** 0.5):
 if __name__ == '__main__':
     print(f"Start: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-    os.makedirs(f"saved_model/model/{name}", exist_ok=True)
-    os.makedirs(f"saved_model/pool/{name}", exist_ok=True)
+    os.makedirs(f"saved_model/model/{NAME}", exist_ok=True)
+    os.makedirs(f"saved_model/pool/{NAME}", exist_ok=True)
 
     # GPU settings
     gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -220,21 +220,21 @@ if __name__ == '__main__':
 
             print(f"Model saved (epoch {epoch}): {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-    # # Convert to TFLite
-    # new_model_resnet = tf.keras.models.load_model('saved_model/model/'+NAME+'_resnet')
-    # converter = tf.lite.TFLiteConverter.from_saved_model('saved_model/model/'+NAME+'_resnet')  # path to the SavedModel directory
-    # tflite_model_resnet = converter.convert()
+    # Convert to TFLite
+    new_model_resnet = tf.keras.models.load_model('saved_model/model/'+NAME+'_resnet')
+    converter = tf.lite.TFLiteConverter.from_saved_model('saved_model/model/'+NAME+'_resnet')  # path to the SavedModel directory
+    tflite_model_resnet = converter.convert()
 
-    # new_model_pool = tf.keras.models.load_model('saved_model/pool/' + NAME + '_pool')
-    # converter = tf.lite.TFLiteConverter.from_saved_model(
-    #     'saved_model/pool/' + NAME + '_pool')  # path to the SavedModel directory
-    # tflite_model_pool = converter.convert()
+    new_model_pool = tf.keras.models.load_model('saved_model/pool/' + NAME + '_pool')
+    converter = tf.lite.TFLiteConverter.from_saved_model(
+        'saved_model/pool/' + NAME + '_pool')  # path to the SavedModel directory
+    tflite_model_pool = converter.convert()
 
-    # # Save the model.
-    # with open('./saved_model/' + NAME + '_resnet.tflite', 'wb') as f:
-    #     f.write(tflite_model_resnet)
-    # # tflite_model_resnet.summary()
+    # Save the model.
+    with open('./saved_model/' + NAME + '_resnet.tflite', 'wb') as f:
+        f.write(tflite_model_resnet)
+    # tflite_model_resnet.summary()
 
-    # with open('./saved_model/'+NAME+'_pool.tflite', 'wb') as f:
-    #     f.write(tflite_model_pool)
-    # # tflite_model_pool.summary()
+    with open('./saved_model/'+NAME+'_pool.tflite', 'wb') as f:
+        f.write(tflite_model_pool)
+    # tflite_model_pool.summary()

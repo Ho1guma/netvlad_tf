@@ -32,7 +32,8 @@ class NetVLAD(tf.keras.Model):
         super(NetVLAD, self).__init__()
         self.conv2 = tf.keras.layers.Conv2D(num_clusters, 1, use_bias=False)
         if config.kernel:
-            self.conv3 = tf.keras.layers.Conv2D(512, config.kernel, use_bias=False)
+            self.padding = tf.keras.layers.ZeroPadding2D(padding=(1,1))
+            self.conv3 = tf.keras.layers.Conv2D(512, config.kernel, strides=2,padding="valid", use_bias=False)
         self.softmax = tf.keras.layers.Softmax(axis=-1)
 
         self.initializer = tf.initializers.he_normal()
@@ -50,8 +51,9 @@ class NetVLAD(tf.keras.Model):
 
 
     def call(self, x, training=None, mask=None):
-        x = self.normalize_tensor(x,p=2,dim=3)
+        x = self.normalize_tensor(x,p=2,dim=3) # norm 1: 삭제 불가!
         if config.kernel:
+            x = self.padding(x)
             x = self.conv3(x)
         s = self.conv2(x)
         a = self.softmax(s)
@@ -61,7 +63,7 @@ class NetVLAD(tf.keras.Model):
         v = self.mul([a,v])
         v = tf.reduce_sum(v, axis=[1, 2])
         #v = tf.transpose(v, perm=[0, 2, 1])
-        v= self.normalize_tensor(v, p=2, dim=1)
+        v= self.normalize_tensor(v, p=2, dim=2) # norm 2
         v = self.flatten(v)
         output = self.normalize_tensor(v, p=2, dim=1)
         return output

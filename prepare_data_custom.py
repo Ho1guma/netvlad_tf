@@ -298,7 +298,8 @@ class TestDatasetFromStruct(tf.keras.utils.Sequence):
         matStruct = loadmat(path)
 
         dataset = 'robotdata'
-        data_dir = "/ssd_data1/lg/pytorch-Netvlad-orig/"
+        data_dir = "/workspace/LG/netvlad_tf/"
+        # data_dir = "/ssd_data1/lg/pytorch-Netvlad-orig/"
 
         whichSet = matStruct['whichSet']
 

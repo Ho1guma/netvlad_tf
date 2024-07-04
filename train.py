@@ -17,7 +17,10 @@ from prepare_data_custom import generate_datasets, get_training_query_set
 
 from tensorflow.python.client import device_lib
 
-NAME = "version6"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+print(device_lib.list_local_devices())
+
+NAME = "version99"
 
 def parse_arguments():
 
@@ -76,19 +79,25 @@ def parse_arguments():
 
 
 def get_model():
-    model = resnet_50()
+    # model = resnet_50()
+    # if config.model == "resnet18":
+    #     model = resnet_18()
+    # if config.model == "resnet34":
+    #     model = resnet_34()
+    # if config.model == "resnet101":
+    #     model = resnet_101()
+    # if config.model == "resnet152":
+    #     model = resnet_152()
+
     if config.model == "resnet18":
-        model = resnet_18()
-    if config.model == "resnet34":
-        model = resnet_34()
-    if config.model == "resnet101":
-        model = resnet_101()
-    if config.model == "resnet152":
-        model = resnet_152()
-    if config.model == "netvlad":
-        #model = resnet_18()
+    # if config.model == "netvlad":
         model = models.ResNet18(include_top=False, input_shape=(config.image_height, config.image_width, config.channels), weights='imagenet')
+    if config.model == "resnet50":
+        model = models.ResNet50(include_top=False, input_shape=(config.image_height, config.image_width, config.channels), weights='imagenet')
+
+    if config.pool == "netvlad":
         pool = netvlad()
+        #model = resnet_18()
 
     model.build(input_shape=(None, config.image_height, config.image_width, config.channels))
     pool.build(input_shape=(None, math.ceil(config.image_height/32), math.ceil(config.image_width/32), 512)) #!DEBUG
@@ -164,7 +173,7 @@ if __name__ == '__main__':
     #     train_accuracy(labels, predictions)
 
     # start training
-    startIter = 1
+    startIter = 90
     for epoch in range(config.EPOCHS):
         train_loss.reset_states()
         train_accuracy.reset_states()
@@ -173,6 +182,21 @@ if __name__ == '__main__':
         epoch_loss = 0
         for iteration, (query, positives, negatives, negCounts) in enumerate(train_data_loader):
             step += 1
+
+        # if epoch % 10 == 0:
+        #     model.save_weights(filepath="saved_model/model", save_format='tf')
+        #     pool.save_weights(filepath="saved_model/pool", save_format='tf')
+
+        #     model.save('saved_model/model/'+NAME+'_resnet')
+        #     pool.save('saved_model/pool/'+NAME+'_pool')
+
+        #     model.save_weights(filepath=f"saved_model/model/{NAME}", save_format='tf')
+        #     pool.save_weights(filepath=f"saved_model/pool/{NAME}", save_format='tf')
+
+        #     model.save(f'saved_model/model/{NAME}/{epoch}_resnet')
+        #     pool.save(f'saved_model/pool/{NAME}/{epoch}_pool')
+
+        #     print(f"Model saved (epoch {epoch}): {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
             if query is None: continue # in case we get an empty batch
 
@@ -206,19 +230,21 @@ if __name__ == '__main__':
                 loss: {epoch_loss.numpy()[0]:.5f}")
 
         if epoch % 10 == 0:
-            # model.save_weights(filepath="saved_model/model", save_format='tf')
-            # pool.save_weights(filepath="saved_model/pool", save_format='tf')
+            model.save_weights(filepath="saved_model/model", save_format='tf')
+            pool.save_weights(filepath="saved_model/pool", save_format='tf')
 
-            # model.save('saved_model/model/'+NAME+'_resnet')
-            # pool.save('saved_model/pool/'+NAME+'_pool')
-
-            model.save_weights(filepath=f"saved_model/model/{NAME}", save_format='tf')
-            pool.save_weights(filepath=f"saved_model/pool/{NAME}", save_format='tf')
-
-            model.save(f'saved_model/model/{NAME}_{epoch}_resnet')
-            pool.save(f'saved_model/pool/{NAME}_{epoch}_pool')
+            model.save('saved_model/model/'+NAME+'_resnet')
+            pool.save('saved_model/pool/'+NAME+'_pool')
 
             print(f"Model saved (epoch {epoch}): {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+    # model.save_weights(filepath=f"saved_model/model/{NAME}", save_format='tf')
+    # pool.save_weights(filepath=f"saved_model/pool/{NAME}", save_format='tf')
+
+    # model.save(f'saved_model/model/{NAME}/{epoch}_resnet')
+    # pool.save(f'saved_model/pool/{NAME}/{epoch}_pool')
+
+    # print(f"Model saved (epoch {epoch}): {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
     # Convert to TFLite
     new_model_resnet = tf.keras.models.load_model('saved_model/model/'+NAME+'_resnet')

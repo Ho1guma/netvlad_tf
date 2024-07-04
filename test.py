@@ -68,11 +68,16 @@ def parse_arguments():
     parser.add_argument('--nNeg', type=int, default=10)
     parser.add_argument('--super', action='store_true', help='supervised learning mode')
 
-    parser.add_argument('--resume_version', type=str, default='version6')
-    parser.add_argument('--structFile', type=str, default='./LG_Struct/240508_db2.mat')                 # living2
+    parser.add_argument('--resume_version', type=str, default='version15')
+    # parser.add_argument('--structFile', type=str, default='./LG_Struct/240508_db2.mat')                 # living2
     # parser.add_argument('--structFile', type=str, default='./LG_Struct/240513-room1.v3.mat')            # room1
     # parser.add_argument('--structFile', type=str, default='./LG_Struct/240513-room2.v2.mat')            # room2
     # parser.add_argument('--structFile', type=str, default='./LG_Struct/240516-living1_db3.v2.mat')      # living1
+
+    # parser.add_argument('--structFile', type=str, default='./LG_Struct/240508_db5.v1.mat')                  # living2
+    # parser.add_argument('--structFile', type=str, default='./LG_Struct/240516-living1_db5.v1.mat')          # living1
+    parser.add_argument('--structFile', type=str, default='./LG_Struct/240513-room1.db7.v1.mat')            # room1
+    # parser.add_argument('--structFile', type=str, default='./LG_Struct/240513-room2.db8.v1.mat')            # room2
 
     args = parser.parse_args()
 

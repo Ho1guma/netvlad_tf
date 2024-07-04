@@ -99,8 +99,13 @@ def get_model():
         pool = netvlad()
         #model = resnet_18()
 
+    dim = 0
+    if config.model == "resnet50":
+        dim = 2048
+    if config.model == "resnet18":
+        dim = 512
     model.build(input_shape=(None, config.image_height, config.image_width, config.channels))
-    pool.build(input_shape=(None, math.ceil(config.image_height/32), math.ceil(config.image_width/32), 512)) #!DEBUG
+    pool.build(input_shape=(None, math.ceil(config.image_height/32), math.ceil(config.image_width/32), dim)) #!DEBUG
 
     model.summary()
     pool.summary()

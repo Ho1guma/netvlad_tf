@@ -118,8 +118,8 @@ class ResNetTypeII(tf.keras.Model):
                                             blocks=layer_params[3],
                                             stride=2)
 
-        self.avgpool = tf.keras.layers.GlobalAveragePooling2D()
-        self.fc = tf.keras.layers.Dense(units=NUM_CLASSES, activation=tf.keras.activations.softmax)
+        # self.avgpool = tf.keras.layers.GlobalAveragePooling2D()
+        # self.fc = tf.keras.layers.Dense(units=NUM_CLASSES, activation=tf.keras.activations.softmax)
 
     def call(self, inputs, training=None, mask=None):
         x = self.conv1(inputs)
@@ -130,10 +130,10 @@ class ResNetTypeII(tf.keras.Model):
         x = self.layer2(x, training=training)
         x = self.layer3(x, training=training)
         x = self.layer4(x, training=training)
-        x = self.avgpool(x)
-        output = self.fc(x)
+        # x = self.avgpool(x)
+        # output = self.fc(x)
 
-        return output
+        return x
 
 
 def resnet_18():

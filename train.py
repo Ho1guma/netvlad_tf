@@ -94,12 +94,16 @@ def get_model():
         model = models.ResNet18(include_top=False, input_shape=(config.image_height, config.image_width, config.channels), weights='imagenet')
     if config.model == "resnet50":
         model = models.ResNet50(include_top=False, input_shape=(config.image_height, config.image_width, config.channels), weights='imagenet')
+    if config.model == "resnet101":
+        model = models.ResNet101(include_top=False, input_shape=(config.image_height, config.image_width, config.channels), weights='imagenet')
 
     if config.pool == "netvlad":
         pool = netvlad()
         #model = resnet_18()
 
     dim = 0
+    if config.model == "resnet101":
+        dim = 4096
     if config.model == "resnet50":
         dim = 2048
     if config.model == "resnet18":

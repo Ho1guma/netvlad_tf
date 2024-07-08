@@ -48,28 +48,34 @@ def parse_arguments():
                         # default='/ssd_data1/lg/pytorch-Netvlad-orig/datasets/240416/train',
                         default='./datasets/240416/train',
                         help='Path for centroid data.')
+    parser.add_argument('--teacherPath', type=str,
+                        # default='/ssd_data1/lg/pytorch-Netvlad-orig/datasets/240416/train',
+                        default='./teacher/',
+                        help='Path for teacher pretrained model.')
     parser.add_argument('--runsPath', type=str, default='./work_dir/runs/run-99/', help='Path to save runs to.')
-    parser.add_argument('--savePath', type=str, default='checkpoints', 
-            help='Path to save checkpoints to in logdir. Default=checkpoints/')
+    parser.add_argument('--savePath', type=str, default='checkpoints',
+                        help='Path to save checkpoints to in logdir. Default=checkpoints/')
     parser.add_argument('--cachePath', type=str, default='./cache/', help='Path to save cache to.')
-    parser.add_argument('--resume', type=str, default='', help='Path to load checkpoint from, for resuming training or testing.')
-    parser.add_argument('--ckpt', type=str, default='latest', 
-            help='Resume from latest or best checkpoint.', choices=['latest', 'best'])
-    parser.add_argument('--evalEvery', type=int, default=1, 
-            help='Do a validation set run, and save, every N epochs.')
+    parser.add_argument('--resume', type=str, default='',
+                        help='Path to load checkpoint from, for resuming training or testing.')
+    parser.add_argument('--ckpt', type=str, default='latest',
+                        help='Resume from latest or best checkpoint.', choices=['latest', 'best'])
+    parser.add_argument('--evalEvery', type=int, default=1,
+                        help='Do a validation set run, and save, every N epochs.')
     parser.add_argument('--patience', type=int, default=10, help='Patience for early stopping. 0 is off.')
     parser.add_argument('--dataset', type=str, default='robotdata',
-            help='Dataset to use', choices=['pittsburgh','robotdata'])
-    parser.add_argument('--arch', type=str, default='resnet18', 
-            help='basenetwork to use', choices=['vgg16', 'alexnet', 'resnet18', 'mobilenetv3'])
+                        help='Dataset to use', choices=['pittsburgh', 'robotdata'])
+    parser.add_argument('--arch', type=str, default='resnet18',
+                        help='basenetwork to use', choices=['vgg16', 'alexnet', 'resnet18', 'mobilenetv3'])
     parser.add_argument('--vladv2', action='store_true', help='Use VLAD v2')
     parser.add_argument('--pooling', type=str, default='netvlad', help='type of pooling to use',
-            choices=['netvlad', 'max', 'avg'])
+                        choices=['netvlad', 'max', 'avg'])
     parser.add_argument('--num_clusters', type=int, default=32, help='Number of NetVlad clusters. Default=64')
     parser.add_argument('--margin', type=float, default=0.1, help='Margin for triplet loss. Default=0.1')
-    parser.add_argument('--split', type=str, default='val', help='Data split to use for testing. Default is val', 
-            choices=['test', 'test250k', 'train', 'val'])
-    parser.add_argument('--fromscratch', action='store_true', help='Train from scratch rather than using pretrained models')
+    parser.add_argument('--split', type=str, default='val', help='Data split to use for testing. Default is val',
+                        choices=['test', 'test250k', 'train', 'val'])
+    parser.add_argument('--fromscratch', action='store_true',
+                        help='Train from scratch rather than using pretrained models')
     parser.add_argument('--nNegSample', type=int, default=16)
     parser.add_argument('--nNeg', type=int, default=10)
     parser.add_argument('--super', action='store_true', help='supervised learning mode')
@@ -78,7 +84,57 @@ def parse_arguments():
     return args
 
 
-def get_model():
+# def get_model():
+#     # model = resnet_50()
+#     # if config.model == "resnet18":
+#     #     model = resnet_18()
+#     # if config.model == "resnet34":
+#     #     model = resnet_34()
+#     # if config.model == "resnet101":
+#     #     model = resnet_101()
+#     # if config.model == "resnet152":
+#     #     model = resnet_152()
+
+#     if config.model == "resnet18":
+#     # if config.model == "netvlad":
+#         model = models.ResNet18(include_top=False, input_shape=(config.image_height, config.image_width, config.channels), weights='imagenet')
+#     if config.model == "resnet50":
+#         model = models.ResNet50(include_top=False, input_shape=(config.image_height, config.image_width, config.channels), weights='imagenet')
+#     if config.model == "resnet101":
+#         model = models.ResNet101(include_top=False, input_shape=(config.image_height, config.image_width, config.channels), weights='imagenet')
+
+#     if config.pool == "netvlad":
+#         pool = netvlad()
+#         #model = resnet_18()
+
+#     dim = 0
+#     if config.model == "resnet101":
+#         dim = 4096
+#     if config.model == "resnet50":
+#         dim = 2048
+#     if config.model == "resnet18":
+#         dim = 512
+#     model.build(input_shape=(None, config.image_height, config.image_width, config.channels))
+#     pool.build(input_shape=(None, math.ceil(config.image_height/32), math.ceil(config.image_width/32), dim)) #!DEBUG
+
+#     model.summary()
+#     pool.summary()
+
+#     return model, pool
+def get_teacher_model(teacher_path):
+
+    teacher_model = tf.keras.models.load_model(teacher_path + 'version20_resnet')
+    teacher_pool = tf.keras.models.load_model(teacher_path+'version20_pool')
+
+    # teacher_model.trainable = False
+    # teacher_pool.trainable = False
+
+    teacher_model.summary()
+    teacher_pool.summary()
+    return teacher_model, teacher_pool
+
+
+def get_student_model():
     # model = resnet_50()
     # if config.model == "resnet18":
     #     model = resnet_18()
@@ -90,16 +146,22 @@ def get_model():
     #     model = resnet_152()
 
     if config.model == "resnet18":
-    # if config.model == "netvlad":
-        model = models.ResNet18(include_top=False, input_shape=(config.image_height, config.image_width, config.channels), weights='imagenet')
+        # if config.model == "netvlad":
+        model = models.ResNet18(include_top=False,
+                                input_shape=(config.image_height, config.image_width, config.channels),
+                                weights='imagenet')
     if config.model == "resnet50":
-        model = models.ResNet50(include_top=False, input_shape=(config.image_height, config.image_width, config.channels), weights='imagenet')
+        model = models.ResNet50(include_top=False,
+                                input_shape=(config.image_height, config.image_width, config.channels),
+                                weights='imagenet')
     if config.model == "resnet101":
-        model = models.ResNet101(include_top=False, input_shape=(config.image_height, config.image_width, config.channels), weights='imagenet')
+        model = models.ResNet101(include_top=False,
+                                 input_shape=(config.image_height, config.image_width, config.channels),
+                                 weights='imagenet')
 
     if config.pool == "netvlad":
         pool = netvlad()
-        #model = resnet_18()
+        # model = resnet_18()
 
     dim = 0
     if config.model == "resnet101":
@@ -109,7 +171,8 @@ def get_model():
     if config.model == "resnet18":
         dim = 512
     model.build(input_shape=(None, config.image_height, config.image_width, config.channels))
-    pool.build(input_shape=(None, math.ceil(config.image_height/32), math.ceil(config.image_width/32), dim)) #!DEBUG
+    pool.build(
+        input_shape=(None, math.ceil(config.image_height / 32), math.ceil(config.image_width / 32), dim))  # !DEBUG
 
     model.summary()
     pool.summary()
@@ -121,12 +184,12 @@ def get_model():
 #     # Compute Euclidean distances
 #     distance_positive = tf.norm(anchor - positive, axis=1)
 #     distance_negative = tf.norm(anchor - negative, axis=1)
-    
+
 #     # Compute triplet loss
 #     loss = tf.maximum(distance_positive - distance_negative + margin, 0.0)
 #     return tf.reduce_mean(loss)
 
-def triplet_margin_loss(query,postive,negative,margin = 0.1 ** 0.5):
+def triplet_margin_loss(query, postive, negative, margin=0.1 ** 0.5):
     positive_distance = tf.keras.backend.sum(tf.square(query - postive), axis=-1)
     negative_distance = tf.keras.backend.sum(tf.square(query - negative), axis=-1)
     loss = positive_distance - negative_distance
@@ -150,22 +213,26 @@ if __name__ == '__main__':
     opt = parse_arguments()
 
     # save configs
-    save_cfg = {f"config.{k}":v for k, v in config.__dict__.items() if "__" not in k}
+    save_cfg = {f"config.{k}": v for k, v in config.__dict__.items() if "__" not in k}
     save_cfg.update({f"opt.{k}": v for k, v in opt.__dict__.items()})
-    a=1
-    with open(f'./configs/{NAME}.config.json', 'w') as f:
-        json.dump(save_cfg, f, indent=4)
+    a = 1
+    # with open(f'./configs/{NAME}.config.json', 'w') as f:
+    #     json.dump(save_cfg, f, indent=4)
 
     with tf.device("/gpu:0"):
         # get the original_dataset
         train_data_loader = get_training_query_set(opt)
 
         # create model
-        model, pool = get_model()
+        # model,pool = get_model()
+        teacher_model, teacher_pool = get_teacher_model(opt.teacherPath)
+        model, pool = get_student_model()
 
         # define loss and optimizer
         loss_object = tf.keras.losses.SparseCategoricalCrossentropy()
         optimizer = tf.keras.optimizers.Adam(lr=opt.lr)
+
+        kl_loss = tf.keras.losses.KLDivergence()
 
         train_loss = tf.keras.metrics.Mean(name='train_loss')
         train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
@@ -183,6 +250,7 @@ if __name__ == '__main__':
 
     # start training
     startIter = 90
+    temperature = 10
     for epoch in range(config.EPOCHS):
         train_loss.reset_states()
         train_accuracy.reset_states()
@@ -192,27 +260,31 @@ if __name__ == '__main__':
         for iteration, (query, positives, negatives, negCounts) in enumerate(train_data_loader):
             step += 1
 
-        # if epoch % 10 == 0:
-        #     model.save_weights(filepath="saved_model/model", save_format='tf')
-        #     pool.save_weights(filepath="saved_model/pool", save_format='tf')
+            # if epoch % 10 == 0:
+            #     model.save_weights(filepath="saved_model/model", save_format='tf')
+            #     pool.save_weights(filepath="saved_model/pool", save_format='tf')
 
-        #     model.save('saved_model/model/'+NAME+'_resnet')
-        #     pool.save('saved_model/pool/'+NAME+'_pool')
+            #     model.save('saved_model/model/'+NAME+'_resnet')
+            #     pool.save('saved_model/pool/'+NAME+'_pool')
 
-        #     model.save_weights(filepath=f"saved_model/model/{NAME}", save_format='tf')
-        #     pool.save_weights(filepath=f"saved_model/pool/{NAME}", save_format='tf')
+            #     model.save_weights(filepath=f"saved_model/model/{NAME}", save_format='tf')
+            #     pool.save_weights(filepath=f"saved_model/pool/{NAME}", save_format='tf')
 
-        #     model.save(f'saved_model/model/{NAME}/{epoch}_resnet')
-        #     pool.save(f'saved_model/pool/{NAME}/{epoch}_pool')
+            #     model.save(f'saved_model/model/{NAME}/{epoch}_resnet')
+            #     pool.save(f'saved_model/pool/{NAME}/{epoch}_pool')
 
-        #     print(f"Model saved (epoch {epoch}): {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            #     print(f"Model saved (epoch {epoch}): {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-            if query is None: continue # in case we get an empty batch
+            if query is None: continue  # in case we get an empty batch
 
-            with tf.GradientTape() as tape:
-                B, C, H, W = query.shape
-                nNeg = tf.reduce_sum(negCounts, axis=0)
-                input = tf.concat([query, positives, negatives], axis=0)
+            B, C, H, W = query.shape
+            nNeg = tf.reduce_sum(negCounts, axis=0)
+            input = tf.concat([query, positives, negatives], axis=0)
+
+            teacher_image_encoding = teacher_model(input,training = False)
+            teacher_vlad_encoding = teacher_pool(teacher_image_encoding,training = False)
+
+            with tf.GradientTape(persistent = True) as tape:
 
                 image_encoding = model(input)
                 vlad_encoding = pool(image_encoding)
@@ -223,27 +295,39 @@ if __name__ == '__main__':
                 for i, negCount in enumerate(negCounts):
                     for n in range(negCount):
                         negIx = int((tf.reduce_sum(negCounts[:i]) + n).numpy())
-                        loss += triplet_margin_loss(vladQ[i:i+1], vladP[i:i+1], vladN[negIx:negIx+1])
+                        loss += triplet_margin_loss(vladQ[i:i + 1], vladP[i:i + 1], vladN[negIx:negIx + 1])
 
                 loss /= tf.cast(nNeg, dtype=tf.float32)
 
+
+                distillation_loss= kl_loss(
+                    tf.nn.softmax(teacher_vlad_encoding / temperature, axis=1),
+                    tf.nn.softmax(vlad_encoding / temperature, axis=1),
+                )
+
+            # for netvlad loss
             trainables = model.trainable_weights + pool.trainable_weights
             gradients = tape.gradient(loss, trainables)
             optimizer.apply_gradients(zip(gradients, trainables))
 
-            print(f"[Iter {iteration}] {loss.numpy()[0]:.5f}")
+            # for KL loss
+            trainables = model.trainable_weights + pool.trainable_weights
+            gradients = tape.gradient(distillation_loss, trainables)
+            optimizer.apply_gradients(zip(gradients, trainables))
+
+            print(f"[Iter {iteration}] trp loss : {loss.numpy()[0]:.5f}  KL_loss : {distillation_loss.numpy():.5f}")
             epoch_loss += loss
 
         epoch_loss /= len(train_data_loader)
-        print(f"Epoch: {epoch+1}/{config.EPOCHS}, \
+        print(f"Epoch: {epoch + 1}/{config.EPOCHS}, \
                 loss: {epoch_loss.numpy()[0]:.5f}")
 
         if epoch % 10 == 0:
             model.save_weights(filepath="saved_model/model", save_format='tf')
             pool.save_weights(filepath="saved_model/pool", save_format='tf')
 
-            model.save('saved_model/model/'+NAME+'_resnet')
-            pool.save('saved_model/pool/'+NAME+'_pool')
+            model.save('saved_model/model/' + NAME + '_resnet')
+            pool.save('saved_model/pool/' + NAME + '_pool')
 
             print(f"Model saved (epoch {epoch}): {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
@@ -256,8 +340,9 @@ if __name__ == '__main__':
     # print(f"Model saved (epoch {epoch}): {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
     # Convert to TFLite
-    new_model_resnet = tf.keras.models.load_model('saved_model/model/'+NAME+'_resnet')
-    converter = tf.lite.TFLiteConverter.from_saved_model('saved_model/model/'+NAME+'_resnet')  # path to the SavedModel directory
+    new_model_resnet = tf.keras.models.load_model('saved_model/model/' + NAME + '_resnet')
+    converter = tf.lite.TFLiteConverter.from_saved_model(
+        'saved_model/model/' + NAME + '_resnet')  # path to the SavedModel directory
     tflite_model_resnet = converter.convert()
 
     new_model_pool = tf.keras.models.load_model('saved_model/pool/' + NAME + '_pool')
@@ -270,6 +355,6 @@ if __name__ == '__main__':
         f.write(tflite_model_resnet)
     # tflite_model_resnet.summary()
 
-    with open('./saved_model/'+NAME+'_pool.tflite', 'wb') as f:
+    with open('./saved_model/' + NAME + '_pool.tflite', 'wb') as f:
         f.write(tflite_model_pool)
     # tflite_model_pool.summary()
